@@ -25,42 +25,6 @@
 
 还要避免另一个误解：一个文件是二进制文件，并不意味着 CPU 就能把它当程序执行。图片、压缩包和 `.pyc` 都能以字节保存；区别在于它们遵循什么格式、由谁读取和怎样使用。
 
-### Python 字节码具体长什么样？
-
-例如，源代码只有两行：
-
-```python
-x = 2
-y = x + 3
-```
-
-在 **CPython 3.13.5** 中，用下面的代码查看编译后的指令：
-
-```python
-import dis
-code = compile("x = 2\ny = x + 3", "<example>", "exec")
-dis.dis(code)
-```
-
-得到的反汇编显示（为便于阅读，省略左侧行号和偏移量）：
-
-```text
-RESUME         0
-LOAD_CONST     0 (2)
-STORE_NAME     0 (x)
-LOAD_NAME      0 (x)
-LOAD_CONST     1 (3)
-BINARY_OP      0 (+)
-STORE_NAME     1 (y)
-RETURN_CONST   2 (None)
-```
-
-这些**大写单词是字节码指令的可读名称**，不是 C 语言汇编，也不是字节码在文件中的原始二进制字节。后面的数字通常是指令参数，括号内是 `dis` 帮我们显示的解释。
-
-按执行顺序理解：`LOAD_CONST` 取常量 `2`，`STORE_NAME` 将它保存为 `x`；随后 `LOAD_NAME` 取 `x`，再 `LOAD_CONST` 取 `3`，`BINARY_OP (+)` 完成加法，最后把结果保存为 `y`。这里的“取出”和“保存”是解释器操作 Python 对象及命名空间的语义，不应直接等同于 CPU 的某条机器指令。
-
-**这也确实属于编译**：`compile()` 把源代码变成代码对象，其中包含字节码；`dis.dis()` 把指令展示给我们看；这几步都没有执行源代码中的赋值。要执行该代码对象，可以另行调用 `exec(code)`。指令名称和输出格式会随 CPython 版本变化。[Python dis 文档][dis] [Python compile 与 exec 文档][builtins]
-
 ## 2. C：先构建可执行程序，再运行它
 
 以 GCC 的常见流程为例，可以分成预处理、编译、汇编和链接。这里的“编译”有两个用法：日常说“编译项目”可能指整条构建流程；下面说“编译阶段”，则特指生成汇编的那个阶段。[GCC 手册][gcc]
@@ -332,6 +296,8 @@ RETURN_VALUE
 4. 开始执行 source
 5
 ```
+
+输出中的大写名称是 CPython 字节码指令的可读形式，不是 CPU 汇编，也不是原始二进制字节。例如，`LOAD_CONST` 读取常量，`STORE_NAME` 保存名称，`LOAD_NAME` 读取名称，`CALL` 调用函数；在 `add` 函数内部，`LOAD_FAST_LOAD_FAST` 取两个局部变量，`BINARY_OP (+)` 完成加法，`RETURN_VALUE` 返回结果。指令旁的数字是参数，括号中是 `dis` 补充的说明。这些操作由 CPython 解释执行，最终仍由 CPU 执行解释器的机器指令。
 
 这里 `3. 查看字节码` 之后只是显示指令，尚未运行源码中的 `print(add(2, 3))`；到 `4. 开始执行 source` 之后才打印 `5`。配套测试也验证了：单独 `compile()` 的标准输出为空，而执行编译得到的代码对象才输出 `5\\n`。[完整原始输出及环境信息](../examples/program-execution/VERIFICATION.md)
 
