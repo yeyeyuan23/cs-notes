@@ -6,7 +6,7 @@
 
 ## 章节目录
 
-章节放在 `systems/` 下，文件夹采用两位序号加名称，例如 `01-how-python-runs`、`02-os-processes-threads`。每章正文使用 `README.md`，配套实验使用 `experiments.ipynb`，放在同一个章节目录。
+章节放在 `systems/` 下，文件夹采用两位序号加名称，例如 `01-how-python-runs`、`02-os-processes-threads`。每章正文使用 `README.md`。需要配套实验时，将代码和结果放进同一章节目录下的 `experiments.ipynb`；概念说明类章节不要求实验 notebook。
 
 ## 在网页上修改文章
 

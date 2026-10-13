@@ -24,11 +24,15 @@
 
 ## 已整理的笔记
 
-**[运行程序时，到底是谁在执行谁？](systems/01-how-python-runs/)**
+**[01 · 运行程序时，到底是谁在执行谁？](systems/01-how-python-runs/)**
 
 以 C 与 CPython 为例，解释源代码、汇编、机器码、字节码、编译器、解释器和 CPU 之间的关系。
 
 [实验 notebook：代码与 Linux 实际输出](systems/01-how-python-runs/experiments.ipynb)
+
+**[02 · 从计算机架构出发，理解操作系统、进程与线程](systems/02-os-processes-threads/)**
+
+先区分硬件、应用、Runtime 和内核，再对比进程与线程，最后用一段 Python 程序串起计算、系统调用、等待与调度。
 
 ---
 笔记以可验证的技术资料与示例为基础；实验结果的适用环境会在文内注明。
