@@ -1,6 +1,6 @@
 # 笔记的发布与维护
 
-仓库：[yeyeyuan23/learning-notes](https://github.com/yeyeyuan23/learning-notes)。
+仓库：[yeyeyuan23/cs-notes](https://github.com/yeyeyuan23/cs-notes)。
 
 文章直接在 GitHub 仓库中阅读；这与启用 GitHub Pages 独立网站是两件事。本仓库没有配置 Pages，也不需要域名或单独租用服务器来阅读这些 Markdown 笔记。
 
@@ -19,8 +19,8 @@
 首次获取仓库：
 
 ```bash
-git clone https://github.com/yeyeyuan23/learning-notes.git
-cd learning-notes
+git clone https://github.com/yeyeyuan23/cs-notes.git
+cd cs-notes
 ```
 
 已有本地副本时，在工作区没有未处理修改的情况下先同步远端：
