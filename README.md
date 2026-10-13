@@ -24,11 +24,11 @@
 
 ## 已整理的笔记
 
-**[运行程序时，到底是谁在执行谁？](systems/how-python-runs/)**
+**[运行程序时，到底是谁在执行谁？](systems/01-how-python-runs/)**
 
 以 C 与 CPython 为例，解释源代码、汇编、机器码、字节码、编译器、解释器和 CPU 之间的关系。
 
-[实验 notebook：代码与 Linux 实际输出](systems/how-python-runs/experiments.ipynb)
+[实验 notebook：代码与 Linux 实际输出](systems/01-how-python-runs/experiments.ipynb)
 
 ---
 笔记以可验证的技术资料与示例为基础；实验结果的适用环境会在文内注明。
