@@ -4,7 +4,7 @@
 
 > 范围：本文讨论普通操作系统环境中的 C 原生编译流程，以及 CPython 的常规字节码解释执行路径。它不是所有语言实现的统一流程图，也不展开即时编译（JIT）、GPU 或虚拟机监控器。
 >
-> 版本提醒：示例的实际运行环境与结果见文末实验记录。不要把某个版本的汇编输出或 Python 字节码名称当成跨版本规范。
+> 版本提醒：示例的实际运行环境与结果见[配套 notebook](experiments.ipynb)。不要把某个版本的汇编输出或 Python 字节码名称当成跨版本规范。
 
 初学时，我最容易把两件事混起来：**代码被转换成什么形式**，以及**究竟是谁在执行这些操作**。
 
@@ -111,201 +111,27 @@ flowchart TB
 
 ## 5. 实验一：把 C 的四个阶段分别保存下来
 
-配套文件位于 [`examples/program-execution/`](../examples/program-execution/)。以下命令以 Linux、GCC 与 GNU 工具为例；其他平台的文件格式、工具输出和名称可能不同。
+[配套 notebook：C 与 CPython 的代码和实验结果](experiments.ipynb) 包含完整源代码、逐步命令和已有的 Linux 实际输出。
 
-`main.c`：
+C 实验依次保存预处理文本、汇编文本和目标文件，再链接并运行程序；随后用 `file`、`nm` 和 `objdump` 观察文件格式、跨文件符号与机器码。
 
-```c
-#include <stdio.h>
+`-E` 表示停在预处理之后，`-S` 表示停在编译生成汇编之后，`-c` 表示生成目标文件而不链接。`gcc -c add.c` 仍可能包含前面的预处理与编译步骤。[GCC 手册][gcc]
 
-int add(int a, int b);
-
-int main(void) {
-    printf("%d\n", add(2, 3));
-    return 0;
-}
-```
-
-`add.c`：
-
-```c
-int add(int a, int b) {
-    return a + b;
-}
-```
-
-从仓库根目录执行：
-
-```bash
-cd examples/program-execution
-
-# 只做预处理，留下文本文件。
-gcc -E main.c -o main.i
-
-# 从预处理结果生成汇编；暂时关闭优化，便于观察。
-gcc -S -O0 main.i -o main.s
-
-# 把汇编变成目标文件。
-gcc -c main.s -o main.o
-
-# 为另一个源文件生成目标文件。
-gcc -c -O0 add.c -o add.o
-
-# 链接，再运行。
-gcc main.o add.o -o demo
-./demo
-```
-
-本次验证运行 `./demo` 的标准输出为：
-
-```text
-5
-```
-
-（验证环境：Linux x86_64、GCC 14.2.0；这里和下面的输出均摘自[已有实验记录](../examples/program-execution/VERIFICATION.md)。）
-
-`-E` 表示停在预处理之后，`-S` 表示停在编译生成汇编之后，`-c` 表示生成目标文件而不链接。注意，`gcc -c add.c` 仍可能包含前面的预处理与编译步骤，不是“任何时候都只做汇编”。[GCC 手册][gcc]
-
-再运行：
-
-```bash
-file main.i main.s main.o demo
-nm main.o
-nm add.o
-objdump -d add.o
-```
-
-实际文件类型输出（只保留关键字段）：
-
-```text
-main.i: C source, ASCII text
-main.s: assembler source, ASCII text
-main.o: ELF 64-bit LSB relocatable, x86-64
-demo:   ELF 64-bit LSB pie executable, x86-64
-```
-
-`nm main.o` 和 `nm add.o` 的输出分别是：
-
-```text
-$ nm main.o
-                 U add
-0000000000000000 T main
-                 U printf
-
-$ nm add.o
-0000000000000000 T add
-```
-
-`U add` 表示 `main.o` 引用了一个尚未在该目标文件内定义的符号；`T add` 表示 `add.o` 中定义了 `add`。这就是链接器需要处理的跨文件引用。
-
-`objdump -d add.o` 的关键输出如下（机器码的十六进制字节在中间一列）：
-
-```text
-0000000000000000 <add>:
-   0: 55                   push   %rbp
-   1: 48 89 e5             mov    %rsp,%rbp
-   4: 89 7d fc             mov    %edi,-0x4(%rbp)
-   7: 89 75 f8             mov    %esi,-0x8(%rbp)
-   a: 8b 55 fc             mov    -0x4(%rbp),%edx
-   d: 8b 45 f8             mov    -0x8(%rbp),%eax
-  10: 01 d0                add    %edx,%eax
-  12: 5d                   pop    %rbp
-  13: c3                   ret
-```
-
-这是 **CPU 机器码的反汇编**，不是 Python 字节码。不同架构或编译选项会生成不同指令。
-
-最后故意不链接 `add.o`：
-
-```bash
-gcc main.o -o missing-add
-```
-
-实际链接失败输出（退出码为 `1`）：
-
-```text
-/usr/bin/ld: main.o: in function `main':
-main.c:(.text+0xf): undefined reference to `add'
-collect2: error: ld returned 1 exit status
-```
-
-这说明 **“源文件能分别编译”不代表“整个程序能成功链接”**。
+原 Linux 记录中的完整程序输出 `5`；故意省略 `add.o` 时，链接器报告未定义的 `add`。这说明源文件能分别编译，不代表整个程序能成功链接。对应代码、错误信息和退出码都保留在 notebook 中。
 
 ## 6. 实验二：把 Python 的编译和执行分开
 
-把下面内容保存为 `inspect_python.py`：
+同一份 [notebook](experiments.ipynb) 先运行 Python 加法示例，再把原来的 `inspect_python.py` 拆成编译、查看字节码和执行三个连续单元格。
 
-```python
-import dis
+`compile()` 返回代码对象；参数 `"exec"` 表示输入是一组语句，而不是当场执行它们。原记录验证了：单独编译时，捕获的标准输出为空；执行代码对象时，才输出 `5` 加一个换行。[Python compile 与 exec 文档][builtins]
 
-source = """
-def add(a, b):
-    return a + b
-
-print(add(2, 3))
-"""
-
-print("1. 开始编译")
-code = compile(source, "<example>", "exec")
-print("2. 编译结束；source 内的 print 尚未执行")
-
-print("3. 查看字节码")
-dis.dis(code)
-
-print("4. 开始执行 source")
-exec(code, {})
-```
-
-运行：
-
-```bash
-python3 inspect_python.py
-```
-
-`compile()` 返回代码对象；参数中的 `"exec"` 表示输入是一组语句，而不是要求 `compile()` 当场执行它们。只有后面的 `exec()` 才执行这份代码。[Python compile 与 exec 文档][builtins]
-
-`dis.dis()` 是查看 Python 字节码的工具，不是查看 CPU 汇编的工具。字节码格式和指令可能随版本变化，因此重点看“加载参数、加法、返回、调用”这样的操作，不要背一份固定输出。[Python dis 文档][dis]
-
-实际输出中的字节码部分如下。为避免把一次运行的内存地址误认为固定结果，省略了代码对象的地址，并精简了行号：
-
-```text
-1. 开始编译
-2. 编译结束；source 内的 print 尚未执行
-3. 查看字节码
-RESUME                   0
-LOAD_CONST               0 (<code object add ...>)
-MAKE_FUNCTION
-STORE_NAME               0 (add)
-LOAD_NAME                1 (print)
-PUSH_NULL
-LOAD_NAME                0 (add)
-PUSH_NULL
-LOAD_CONST               1 (2)
-LOAD_CONST               2 (3)
-CALL                     2
-CALL                     1
-POP_TOP
-RETURN_CONST             3 (None)
-
-Disassembly of <code object add ...>:
-RESUME                   0
-LOAD_FAST_LOAD_FAST      1 (a, b)
-BINARY_OP                0 (+)
-RETURN_VALUE
-
-4. 开始执行 source
-5
-```
-
-输出中的大写名称是 CPython 字节码指令的可读形式，不是 CPU 汇编，也不是原始二进制字节。例如，`LOAD_CONST` 读取常量，`STORE_NAME` 保存名称，`LOAD_NAME` 读取名称，`CALL` 调用函数；在 `add` 函数内部，`LOAD_FAST_LOAD_FAST` 取两个局部变量，`BINARY_OP (+)` 完成加法，`RETURN_VALUE` 返回结果。指令旁的数字是参数，括号中是 `dis` 补充的说明。这些操作由 CPython 解释执行，最终仍由 CPU 执行解释器的机器指令。
-
-这里 `3. 查看字节码` 之后只是显示指令，尚未运行源码中的 `print(add(2, 3))`；到 `4. 开始执行 source` 之后才打印 `5`。配套测试也验证了：单独 `compile()` 的标准输出为空，而执行编译得到的代码对象才输出 `5\\n`。[完整原始输出及环境信息](../examples/program-execution/VERIFICATION.md)
+`dis.dis()` 显示的是 CPython 字节码，不是 CPU 汇编。notebook 保留了 CPython 3.13.5 的实际输出，包括函数创建、参数加载、加法、调用和返回等操作；它们由 CPython 解释执行，最终仍由 CPU 执行解释器的机器指令。具体指令可能随 Python 版本变化。[Python dis 文档][dis]
 
 ### 没有 `.pyc`，是不是没有编译？
 
 不是。生成代码对象与把缓存写到磁盘是两回事。Python 导入模块时通常可以利用 `__pycache__` 中的编译缓存；直接从命令行运行的主脚本不会按同样方式保存自己的缓存。不要只看文件夹里有没有 `.pyc`，就判断本次是否经历了字节码编译。[Python 模块教程][modules]
 
-## 7. 几个现在应该能够回答的问题
+## 7. 几个容易混淆的区别
 
 **“编译”和“汇编”不一样，为什么又把汇编放进编译流程？**
 

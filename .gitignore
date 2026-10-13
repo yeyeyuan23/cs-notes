@@ -3,6 +3,5 @@ __pycache__/
 *.o
 *.i
 *.s
-examples/program-execution/demo
-examples/program-execution/missing-add
 .DS_Store
+.ipynb_checkpoints/

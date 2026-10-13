@@ -6,9 +6,9 @@
 
 ## 在网页上修改文章
 
-打开 [`systems/how-python-runs.md`](systems/how-python-runs.md)，使用 GitHub 的文件编辑功能修改正文，预览后提交。文中的两张流程图是 Mermaid 代码块，可以随正文一起修改。
+打开 [`systems/how-python-runs/README.md`](systems/how-python-runs/README.md)，使用 GitHub 的文件编辑功能修改正文，预览后提交。文中的流程图是 Mermaid 代码块，可以随正文一起修改。
 
-目录和文章简介位于 [`README.md`](README.md)。配套代码位于 [`examples/program-execution/`](examples/program-execution/)。
+目录和文章简介位于 [`README.md`](README.md)。代码和 Linux 实际输出集中在 [`experiments.ipynb`](systems/how-python-runs/experiments.ipynb)，与正文放在同一个章节目录。
 
 ## 在本地修改
 
@@ -29,7 +29,7 @@ git pull --ff-only
 
 ```bash
 git diff
-git add systems/how-python-runs.md
+git add systems/how-python-runs/README.md
 git diff --cached
 git commit -m "Revise program execution note"
 git push origin main
@@ -37,17 +37,26 @@ git push origin main
 
 示例只暂存正文文件。修改其他文件时，显式添加对应路径；提交前检查暂存区，不要把访问令牌、环境配置或其他项目数据放进公开仓库。推送需要在自己的电脑上完成 GitHub 身份验证，不要把密码或令牌发到聊天中。
 
-## 重新验证实验
+## 查看与复现实验
 
-以下脚本针对 Linux、Python 3、GCC 与 GNU Binutils，另外需要 `file` 命令：
+在 GitHub 上打开 [实验 notebook](systems/how-python-runs/experiments.ipynb)，即可阅读代码与原有 Linux 输出。已有输出的环境、时间和来源在 notebook 开头注明。
+
+复现 C 实验需要 Linux、Python 3、GCC、GNU Binutils 和 `file`。安装 Jupyter 相关工具后，可以交互式打开：
 
 ```bash
-python3 examples/program-execution/verify.py
+python3 -m pip install notebook nbconvert ipykernel
+python3 -m notebook systems/how-python-runs/experiments.ipynb
 ```
 
-它会在临时目录构建 C 示例，并更新 [`VERIFICATION.md`](examples/program-execution/VERIFICATION.md)。它不会替你提交或推送；需要保留新记录时，再检查并提交该文件。
+选择 Python 3 内核，从上到下运行。也可以从仓库根目录执行并保存新输出：
 
-验证记录只证明列明环境中的实验结果，不证明所有平台输出相同，也不等于验证了网页排版。
+```bash
+python3 -m jupyter nbconvert --to notebook --execute --inplace \
+  --ExecutePreprocessor.timeout=120 \
+  systems/how-python-runs/experiments.ipynb
+```
+
+实验在临时目录中创建源文件和构建产物，最后清理。重新运行会替换已有输出；提交前应检查输出变化，并更新正文或记录中的相关环境说明。
 
 ## 官方文档
 
