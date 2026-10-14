@@ -44,7 +44,12 @@ def add(a, b):
 
 ### 它们的层级和调用关系
 
-在本文讨论的普通桌面系统中，应用、它使用的库和语言 Runtime 通常都运行在**用户态（User Mode）**，访问资源受到硬件权限机制的限制。内核运行在**内核态（Kernel Mode）**，拥有管理这些资源所需的权限。用户态代码通过**系统调用（System Call）** 请求内核服务。[OSTEP：执行权限与系统调用](https://pages.cs.wisc.edu/~remzi/OSTEP/cpu-mechanisms.pdf)
+**用户态（User Mode）和内核态（Kernel Mode），是 CPU 执行代码时所处的两种权限模式。** 在本文讨论的普通桌面系统中：
+
+- **用户态**：CPU 执行应用、程序库和语言 Runtime 的普通代码，硬件限制这些代码可以访问的资源和执行的操作。
+- **内核态**：CPU 执行内核代码，允许执行管理内存、设备等资源所需的特权操作。
+
+CPU 可以在这两种模式之间切换。例如，程序通过**系统调用（System Call）** 请求内核服务时，系统调用指令使 CPU 切换到内核态，并跳转到内核指定的入口。内核处理请求后，可以返回用户态，继续执行程序。因此，后文说“CPU 进入内核态”，指的就是 CPU 改变执行权限，并开始执行相应的内核代码。[OSTEP：执行权限与系统调用](https://pages.cs.wisc.edu/~remzi/OSTEP/cpu-mechanisms.pdf)
 
 以 CPython 为例，可以把关系画成：
 
