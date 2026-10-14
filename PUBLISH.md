@@ -10,7 +10,7 @@
 
 ## 在网页上修改文章
 
-打开 [`systems/01-how-python-runs/README.md`](systems/01-how-python-runs/README.md)，使用 GitHub 的文件编辑功能修改正文，预览后提交。文中的流程图是 Mermaid 代码块，可以随正文一起修改。
+打开 [`systems/01-how-python-runs/README.md`](systems/01-how-python-runs/README.md)，使用 GitHub 的文件编辑功能修改正文，预览后提交。文中的流程图以 SVG 显示，Mermaid 源文件（`.mmd`）与正文放在同一章节目录。修改图时，编辑源文件并重新导出对应的 `.svg`。
 
 目录和文章简介位于 [`README.md`](README.md)。代码和 Linux 实际输出集中在 [`experiments.ipynb`](systems/01-how-python-runs/experiments.ipynb)，与正文放在同一个章节目录。
 

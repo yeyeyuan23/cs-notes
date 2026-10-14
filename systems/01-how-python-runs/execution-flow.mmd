@@ -1,0 +1,15 @@
+flowchart TB
+    subgraph C["C：原生构建与运行"]
+        direction TB
+        C1["C 源代码 main.c"] -->|"预处理"| C2["预处理后的 C 文本 main.i"]
+        C2 -->|"编译"| C3["汇编文本 main.s"]
+        C3 -->|"汇编"| C4["目标文件 main.o"]
+        C4 -->|"链接其他目标文件和库"| C5["可执行文件 demo"]
+        C5 -->|"操作系统加载；运行时准备"| C6["CPU 执行程序和运行库的机器指令"]
+    end
+    subgraph P["CPython：解释器已先被启动"]
+        direction TB
+        P1["Python 源代码 main.py"] -->|"CPython 内部编译"| P2["代码对象：字节码及相关信息"]
+        P2 -->|"由解释执行机制处理"| P3["执行相应操作的既有实现"]
+        P3 -->|"从硬件视角看"| P4["CPU 执行 CPython 及所调用原生代码的机器指令"]
+    end

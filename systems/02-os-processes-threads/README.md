@@ -6,21 +6,9 @@
 
 先看普通桌面系统中，与运行程序直接相关的主要部分：
 
-```mermaid
-flowchart TB
-    C["计算机系统"] --> H["硬件"]
-    C --> S["软件"]
+![计算机系统的硬件与软件分类关系](architecture.svg)
 
-    H --> CPU["中央处理器（CPU）：执行机器指令"]
-    H --> M["内存（Memory）：保存运行中的程序和数据"]
-    H --> D["设备：硬盘、网卡、键盘等"]
-
-    S --> K["操作系统内核（OS Kernel）：管理资源、提供系统服务"]
-    S --> U["用户态软件（User-space Software）"]
-    U --> A["应用程序：浏览器、文字编辑器等"]
-    U --> R["程序库（Libraries）与 Runtime：如数学库、CPython 的执行支持"]
-    U --> T["系统工具：帮助用户操作系统，例如命令行窗口"]
-```
+[图表源码（Mermaid）](architecture.mmd)
 
 这张图的连线表示分类关系。
 
@@ -49,7 +37,7 @@ python3 main.py
 
 ### Runtime 具体在做什么？
 
-**语言运行时系统（Runtime System，后文简称 Runtime）**指程序执行过程中，为某种语言提供支持的一组软件机制和代码。这里的 Runtime 是软件支持机制，不是程序运行的那段时间；描述时间时，本文使用“执行期间”或“运行过程中”。
+**语言运行时系统（Runtime System，后文简称 Runtime）** 指程序执行过程中，为某种语言提供支持的一组软件机制和代码。这里的 Runtime 是软件支持机制，不是程序运行的那段时间；描述时间时，本文使用“执行期间”或“运行过程中”。
 
 以 CPython 为例，它的 Runtime 支持包含解释执行字节码、处理 Python 对象与操作，以及管理对象所需的内存。把这些职责放到一个具体函数中看：
 
@@ -110,7 +98,7 @@ Runtime 支持可以包含在解释器中，也可以以库等形式与程序一
 
 在 A 中输入一个字，修改的是 A 内存中的文档数据，不会自动改动 B 内存中的那一份。即使它们打开同一个磁盘文件，内存中的两份数据也不会自动保持一致；保存和重新读取文件是另外的操作。
 
-操作系统用**进程（Process）**组织一次运行的地址空间（Address Space）、资源与相关状态。普通进程通常拥有各自的地址空间；需要交换数据时，可以使用进程间通信，也可以明确建立共享内存。[Linux：进程与地址空间](https://man7.org/linux/man-pages/man2/fork.2.html)
+操作系统用**进程（Process）** 组织一次运行的地址空间（Address Space）、资源与相关状态。普通进程通常拥有各自的地址空间；需要交换数据时，可以使用进程间通信，也可以明确建立共享内存。[Linux：进程与地址空间](https://man7.org/linux/man-pages/man2/fork.2.html)
 
 这里的独立主要指运行状态和地址空间的边界，并不意味着两个进程不能访问同一个文件，也不意味着它们使用的所有物理内存都必须是两份。
 
@@ -118,7 +106,7 @@ Runtime 支持可以包含在解释器中，也可以以库等形式与程序一
 
 现在只看其中一个编辑器。它一边响应输入，一边在后台检查文档。两项工作可以访问同一份文档对象，却需要分别记录各自正在做什么：输入处理可能正在插入字符，检查工作可能正在分析另一段文字。
 
-**线程（Thread）**表示这样一条执行路线。同一进程中的线程共享地址空间及打开的文件等资源，各自保留执行位置、寄存器状态和栈。[Linux：线程的共享与独立属性](https://man7.org/linux/man-pages/man7/pthreads.7.html)
+**线程（Thread）** 表示这样一条执行路线。同一进程中的线程共享地址空间及打开的文件等资源，各自保留执行位置、寄存器状态和栈。[Linux：线程的共享与独立属性](https://man7.org/linux/man-pages/man7/pthreads.7.html)
 
 ```text
 一个编辑器进程
@@ -182,7 +170,7 @@ Runtime 并不是另一个替你执行程序的进程。它是当前进程中使
 
 从 Python 代码看，是执行了函数和加法；从硬件看，是 CPU 在执行 CPython 的机器指令。线程描述这条执行路线，Runtime 提供处理 Python 操作的代码。计算本身不要求内核逐条解释 Python 代码。[Python：对象与操作](https://docs.python.org/3/reference/datamodel.html#objects-values-and-types)
 
-应用和 Runtime 的普通代码通常在**用户态（User Mode）**执行，受到硬件权限机制的限制。需要受保护的系统服务时，执行可以进入**内核态（Kernel Mode）**，由 CPU 执行内核代码。[OSTEP：执行权限](https://pages.cs.wisc.edu/~remzi/OSTEP/cpu-mechanisms.pdf)
+应用和 Runtime 的普通代码通常在**用户态（User Mode）** 执行，受到硬件权限机制的限制。需要受保护的系统服务时，执行可以进入**内核态（Kernel Mode）**，由 CPU 执行内核代码。[OSTEP：执行权限](https://pages.cs.wisc.edu/~remzi/OSTEP/cpu-mechanisms.pdf)
 
 ### 请求输入：同一线程进入内核获取服务
 
@@ -200,13 +188,13 @@ Python 的输入处理会使用底层输入输出功能；当需要内核提供�
 
 ### 等待：内核安排其他线程使用 CPU
 
-在本例设定下，终端暂时没有可读取的输入，读取需要等待。主线程进入**阻塞（Blocked）**状态：它还存在，但需要等某个事件发生才能继续。`result` 对应的对象仍保留在进程的内存中，后面的 `print(result)` 尚未执行。[OSTEP：运行与等待状态](https://pages.cs.wisc.edu/~remzi/OSTEP/cpu-intro.pdf)
+在本例设定下，终端暂时没有可读取的输入，读取需要等待。主线程进入**阻塞（Blocked）** 状态：它还存在，但需要等某个事件发生才能继续。`result` 对应的对象仍保留在进程的内存中，后面的 `print(result)` 尚未执行。[OSTEP：运行与等待状态](https://pages.cs.wisc.edu/~remzi/OSTEP/cpu-intro.pdf)
 
 内核可以从其他可以运行的线程中选择一个，让它获得 CPU。这种选择叫作**调度（Scheduling）**。在 Linux 中，被安排执行的通常是线程，而这些线程分别属于相应的进程。[Linux：调度](https://man7.org/linux/man-pages/man7/sched.7.html)
 
 从当前线程转去执行另一个线程，还需要保存当前的执行状态，并恢复另一个线程的状态。这个动作叫作**上下文切换（Context Switch）**。原来进程中的文档、变量或对象并不需要因此全部复制一遍。
 
-也可以在没有等待输入时发生切换。例如，如果主线程持续计算，**定时器中断（Timer Interrupt）**等机制能使 CPU 进入内核处理流程，让内核有机会决定是否安排其他线程。中断发生后也可能继续执行原线程；进入内核与切换线程仍是两件不同的事。[OSTEP：执行控制与上下文切换](https://pages.cs.wisc.edu/~remzi/OSTEP/cpu-mechanisms.pdf)
+也可以在没有等待输入时发生切换。例如，如果主线程持续计算，**定时器中断（Timer Interrupt）** 等机制能使 CPU 进入内核处理流程，让内核有机会决定是否安排其他线程。中断发生后也可能继续执行原线程；进入内核与切换线程仍是两件不同的事。[OSTEP：执行控制与上下文切换](https://pages.cs.wisc.edu/~remzi/OSTEP/cpu-mechanisms.pdf)
 
 ### 输入到达：重新获得执行机会，再继续 Python 代码
 
