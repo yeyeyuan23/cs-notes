@@ -96,7 +96,7 @@ CPU 可以在这两种模式之间切换。例如，程序通过**系统调用�
 
 在 A 中输入一个字，修改的是 A 内存中的文档数据，不会自动改动 B 内存中的那一份。即使它们打开同一个磁盘文件，内存中的两份数据也不会自动保持一致；保存和重新读取文件是另外的操作。
 
-操作系统用**进程（Process）** 组织一次运行的地址空间（Address Space）、资源与相关状态。普通进程通常拥有各自的地址空间；需要交换数据时，可以使用进程间通信，也可以明确建立共享内存。[Linux：进程与地址空间](https://man7.org/linux/man-pages/man2/fork.2.html)
+操作系统内核用**进程（Process）** 组织一次运行的地址空间（Address Space）、资源与相关状态。普通进程通常拥有各自的地址空间；需要交换数据时，可以使用进程间通信，也可以明确建立共享内存。[Linux：进程与地址空间](https://man7.org/linux/man-pages/man2/fork.2.html)
 
 这种独立体现为各自的地址空间与运行状态；两个进程仍可访问同一个文件，部分物理内存也可以共享。
 
@@ -148,7 +148,7 @@ print(result)
 python3 main.py
 ```
 
-下面以普通 Linux 环境、这个程序只有一个主线程、标准输入连接终端且暂时没有可读取的输入为例，沿着执行顺序观察各个角色。
+下面以普通 Linux 环境、这个程序只有一个主线程、终端使用通常的按行输入方式且暂时没有可读取的输入为例。只讨论用户正常输入并按回车的情况，沿着这一个主线程的执行过程观察。
 
 ### 启动：进程承载资源，线程开始执行 CPython
 
@@ -174,20 +174,36 @@ python3 main.py
 
 这一步中，同一个线程从执行用户态代码转为执行内核代码，改变的是执行权限和所执行的代码。[Linux 内核：执行进入与退出](https://docs.kernel.org/core-api/entry.html)
 
-### 等待：内核安排其他线程使用 CPU
+### 等待输入：主线程从运行变为阻塞
 
-在本例设定下，终端暂时没有可读取的输入，读取需要等待。主线程进入**阻塞（Blocked）** 状态：它还存在，但需要等某个事件发生才能继续。`result` 对应的对象仍保留在进程的内存中，后面的 `print(result)` 尚未执行。[OSTEP：运行与等待状态](https://pages.cs.wisc.edu/~remzi/OSTEP/cpu-intro.pdf)
+主线程通过系统调用请求读取输入时，终端暂时没有可读的一行数据。主线程执行到内核的读取处理代码，由这段代码登记它正在等待的输入事件，并将它置为**阻塞（Blocked）** 状态。主线程随后暂停执行，直到等待条件发生变化。[Linux 内核：终端读取](https://docs.kernel.org/driver-api/tty/n_tty.html)
 
-内核可以从其他可以运行的线程中选择一个，让它获得 CPU。这种选择叫作**调度（Scheduling）**。在 Linux 中，被安排执行的通常是线程，而这些线程分别属于相应的进程。[Linux：调度](https://man7.org/linux/man-pages/man7/sched.7.html)
+主线程暂停后，它的执行状态被保存，`result` 对应的对象也仍在进程的内存中。由于这个 Python 进程只有一个线程，内核的调度器此时可以让另一个进程的线程使用这个逻辑 CPU，例如浏览器的线程。CPU 没有其他工作可做时，也可以进入空闲等待。
 
-从当前线程转去执行另一个线程，还需要保存当前的执行状态，并恢复另一个线程的状态。这个动作叫作**上下文切换（Context Switch）**。进程中的对象继续保留在原来的内存中。
+内核选择哪个线程获得 CPU 的过程叫作**调度（Scheduling）**；保存当前线程的执行状态、恢复另一个线程的执行状态的过程叫作**上下文切换（Context Switch）**。线程的状态由内核记录和管理，调度决策由内核中的调度器作出。[Linux：线程调度](https://man7.org/linux/man-pages/man7/sched.7.html) [OSTEP：上下文切换](https://pages.cs.wisc.edu/~remzi/OSTEP/cpu-mechanisms.pdf)
 
-持续计算的线程也可能被暂停：**定时器中断（Timer Interrupt）** 等机制能使 CPU 进入内核处理流程，让内核有机会决定是否安排其他线程。内核处理完中断后，可以恢复原线程，也可以调度其他线程。[OSTEP：执行控制与上下文切换](https://pages.cs.wisc.edu/~remzi/OSTEP/cpu-mechanisms.pdf)
+### 输入到达：主线程先变为就绪，再恢复运行
 
-### 输入到达：重新获得执行机会，再继续 Python 代码
+主线程等待期间，计算机仍在运行其他代码，操作系统已有的输入机制继续接收和处理终端输入。在本例的按行输入设定下，用户输入文字并按回车后，终端提供一行可读数据。内核的输入处理代码唤醒等待这份输入的主线程，将它变为**就绪（Ready）** 状态：主线程已经具备继续执行的条件，接下来等待调度器安排 CPU。[Linux 内核：终端输入处理](https://docs.kernel.org/driver-api/tty/n_tty.html) [OSTEP：阻塞与就绪](https://pages.cs.wisc.edu/~remzi/OSTEP/cpu-intro.pdf)
 
-当终端输入可用，内核可以使等待的主线程恢复为**就绪（Ready）**：它已经可以继续，但还需要获得 CPU 的执行机会。
+主线程再次获得 CPU 后，从暂停的读取处理代码处继续执行，取得输入数据，并从内核返回用户态。主线程接着执行 CPython 的输入处理代码，使 `input()` 返回，再继续执行后面的 `print(result)`。[Python：input](https://docs.python.org/3/library/functions.html#input)
 
-再次被调度后，线程恢复执行，完成输入处理并返回 Python 代码。CPython 接着处理 `print(result)`，将整数结果转换为需要输出的文本，再通过输出功能显示出来；涉及系统输出服务时，又会使用相应的系统调用。[OSTEP：从就绪到运行](https://pages.cs.wisc.edu/~remzi/OSTEP/cpu-intro.pdf) [Python：print](https://docs.python.org/3/library/functions.html#print)
+把描述对象固定为这个主线程，状态变化就是：
 
-这段执行中，进程一直保留自己的资源，主线程可能多次暂停和恢复。每次回到 Python 代码，CPU 继续执行 CPython 中相应的 Runtime 与库代码，从此前保存的位置推进工作。
+```text
+主线程：运行中，请求读取输入
+             ↓ 读取需要等待，内核将它阻塞并切走
+主线程：阻塞，执行状态保留，暂停执行
+             ↓ 输入可读，内核将它唤醒
+主线程：就绪，具备继续执行的条件
+             ↓ 内核调度器再次安排它使用 CPU
+主线程：运行中，完成读取，继续后面的代码
+```
+
+这段程序始终只使用一个主线程，输入的接收与唤醒由操作系统已有的机制承担。`input()` 本身没有设置等待输入的超时时限。[Python：input 接口](https://docs.python.org/3/library/functions.html#input)
+
+### 补充：主线程持续计算时，也可能被调度器暂停
+
+前面的主线程因等待输入而暂停。如果主线程一直有计算可做，操作系统仍需要让其他线程获得 CPU 的执行机会。**定时器中断（Timer Interrupt）** 等机制使执行这段计算的逻辑 CPU 转入内核，让调度器有机会决定继续运行主线程，或切换到其他线程。[OSTEP：执行控制与上下文切换](https://pages.cs.wisc.edu/~remzi/OSTEP/cpu-mechanisms.pdf)
+
+这里的定时器用于操作系统的时间管理与调度。前面 `input()` 的等待则由输入事件结束，两种情况触发调度的原因不同。
